@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Encuesta de Lenguajes de Programación</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    h1, h2, h3 {
+      text-align: center;
+      color: #2c3e50;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .encuesta, .grafica, .comentarios {
+      flex: 1;
+      min-width: 300px;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-top: 20px;
+    }
+    .opcion {
+      margin: 10px 0;
+      background: #f1f1f1;
+      padding: 8px;
+      border-radius: 5px;
+    }
+    .agregar-opcion {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    #nuevaOpcion {
+      flex: 1;
+      padding: 8px;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    .comentario {
+      background: #f9f9f9;
+      border-left: 3px solid #3498db;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Encuesta de Lenguajes de Programación</h1>
+
+  <div class="container">
+    <div class="encuesta">
+      <h2>¿Cuál es tu lenguaje favorito?</h2>
+      <form id="encuestaForm">
+        <div id="opcionesEncuesta">
+          <div class="opcion">
+            <input type="radio" id="javascript" name="lenguaje" value="JavaScript" checked>
+            <label for="javascript">JavaScript</label>
+          </div>
+          <div class="opcion">
+            <input type="radio" id="python" name="lenguaje" value="Python">
+            <label for="python">Python</label>
+          </div>
+          <div class="opcion">
+            <input type="radio" id="java" name="lenguaje" value="Java">
+            <label for="java">Java</label>
+          </div>
+          <div class="opcion">
+            <input type="radio" id="csharp" name="lenguaje" value="C#">
+            <label for="csharp">C#</label>
+          </div>
+        </div>
+        <button type="submit">Votar</button>
+      </form>
+
+      <div class="agregar-opcion">
+        <input type="text" id="nuevaOpcion" placeholder="Añadir nueva opción">
+        <button id="agregarOpcion">Agregar</button>
+      </div>
+    </div>
+
+    <div class="grafica">
+      <h2>Resultados</h2>
+      <canvas id="graficaResultados"></canvas>
+    </div>
+  </div>
+
+  <div class="comentarios" x-data="comentariosApp()" x-init="iniciar()">
+    <h3>Comentarios</h3>
+    <textarea x-model="nuevo" rows="3" placeholder="Escribe tu comentario..."></textarea>
+    <button @click="agregarComentario()">Enviar</button>
+    <button @click="borrarTodo()" style="background-color: red; margin-top: 10px;">Borrar todos</button>
+    <div id="listaComentarios">
+      <template x-for="(comentario, index) in lista" :key="index">
+        <div class="comentario flex justify-between items-start">
+          <span x-text="comentario" style="flex: 1;"></span>
+          <button @click="eliminarComentario(index)" style="margin-left: 10px; background: transparent; border: none; color: red; cursor: pointer;">❌</button>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <script>
+    // Datos iniciales
+    let resultados = {
+      "JavaScript": 0,
+      "Python": 0,
+      "Java": 0,
+      "C#": 0
+    };
+
+    // Crear gráfica
+    const ctx = document.getElementById('graficaResultados').getContext('2d');
+    const grafica = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(resultados),
+        datasets: [{
+          label: 'Votos',
+          data: Object.values(resultados),
+          backgroundColor: 'rgba(52, 152, 219, 0.6)',
+          borderColor: 'rgba(41, 128, 185, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { stepSize: 1 }
+          }
+        }
+      }
+    });
+
+    // Votar
+    document.getElementById('encuestaForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const seleccionado = document.querySelector('input[name="lenguaje"]:checked');
+      if (seleccionado) {
+        resultados[seleccionado.value]++;
+        actualizarGrafica();
+      }
+    });
+
+    // Agregar opción
+    document.getElementById('agregarOpcion').addEventListener('click', function() {
+      const input = document.getElementById('nuevaOpcion');
+      const nueva = input.value.trim();
+      if (nueva && !resultados.hasOwnProperty(nueva)) {
+        resultados[nueva] = 0;
+        const div = document.createElement('div');
+        div.className = 'opcion';
+        div.innerHTML = `
+          <input type="radio" id="${nueva.toLowerCase()}" name="lenguaje" value="${nueva}">
+          <label for="${nueva.toLowerCase()}">${nueva}</label>
+        `;
+        document.getElementById('opcionesEncuesta').appendChild(div);
+        actualizarGrafica();
+        input.value = '';
+      } else {
+        alert('¡Esa opción ya existe o está vacía!');
+      }
+    });
+
+    function actualizarGrafica() {
+      grafica.data.labels = Object.keys(resultados);
+      grafica.data.datasets[0].data = Object.values(resultados);
+      grafica.update();
+    }
+
+    // Comentarios con Alpine.js
+    function comentariosApp() {
+      return {
+        nuevo: '',
+        lista: [],
+        iniciar() {
+          const guardados = localStorage.getItem('comentarios');
+          this.lista = guardados ? JSON.parse(guardados) : [];
+        },
+        agregarComentario() {
+          if (this.nuevo.trim() !== '') {
+            this.lista.push(this.nuevo.trim());
+            this.nuevo = '';
+            localStorage.setItem('comentarios', JSON.stringify(this.lista));
+          }
+        },
+        eliminarComentario(index) {
+          this.lista.splice(index, 1);
+          localStorage.setItem('comentarios', JSON.stringify(this.lista));
+        },
+        borrarTodo() {
+          if (confirm('¿Estás seguro de borrar todos los comentarios?')) {
+            this.lista = [];
+            localStorage.removeItem('comentarios');
+          }
+        }
+      };
+    }
+  </script>
+</body>
+</html>
